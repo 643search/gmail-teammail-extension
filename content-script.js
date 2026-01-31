@@ -47,7 +47,7 @@ function initTeamMail() {
 function setupTeamMail() {
   console.log('TeamMail: Setting up features...');
   
-  // Create comment button
+  // Create comment button (only for specific emails)
   createCommentButton();
   
   // Set up observers for email changes
@@ -57,14 +57,30 @@ function setupTeamMail() {
   setupKeyboardShortcuts();
 }
 
+// Remove comment button when not needed
+function removeCommentButton() {
+  const button = document.querySelector('#teammail-comment-btn');
+  if (button) {
+    button.remove();
+    console.log('TeamMail: Removed comment button');
+  }
+}
+
 // Create the main comment button
 function createCommentButton() {
+  // Only show button when viewing a specific email
+  const emailId = extractEmailId();
+  if (!emailId || emailId === 'inbox') {
+    console.log('TeamMail: Not viewing specific email, not creating button');
+    return;
+  }
+  
   if (document.querySelector('#teammail-comment-btn')) {
     console.log('TeamMail: Comment button already exists');
     return;
   }
   
-  console.log('TeamMail: Attempting to create comment button...');
+  console.log('TeamMail: Creating comment button for email:', emailId);
   
   // Try multiple injection points
   let injectionPoint = null;
@@ -146,8 +162,9 @@ function openCommentSidebar() {
   
   // Get current email ID
   currentEmailId = extractEmailId();
-  if (!currentEmailId) {
-    console.log('TeamMail: Could not extract email ID');
+  if (!currentEmailId || currentEmailId === 'inbox') {
+    console.log('TeamMail: Not viewing a specific email, cannot open comments');
+    alert('Please open a specific email to add team comments.');
     return;
   }
   
@@ -198,25 +215,47 @@ function closeCommentSidebar() {
 
 // Extract email ID from Gmail DOM
 function extractEmailId() {
-  // Try multiple methods to get a unique email identifier
-  const threadElement = document.querySelector(GMAIL_SELECTORS.emailThread);
-  if (threadElement) {
-    return threadElement.getAttribute('data-thread-id');
+  console.log('TeamMail: Extracting email ID from URL:', window.location.href);
+  
+  // Check if we're in inbox list view (not viewing specific email)
+  if (window.location.href.includes('#inbox') && !window.location.href.match(/\/[A-Za-z0-9]{16}/)) {
+    console.log('TeamMail: In inbox list view, no specific email');
+    return 'inbox'; // Special marker for inbox view
   }
   
-  // Fallback to URL parsing
-  const urlMatch = window.location.href.match(/\/mail\/u\/\d+\/#inbox\/([A-Za-z0-9]+)/);
+  // Method 1: Extract from URL (most reliable)
+  const urlMatch = window.location.href.match(/\/([A-Za-z0-9]{16,})/);
   if (urlMatch) {
+    console.log('TeamMail: Email ID from URL:', urlMatch[1]);
     return urlMatch[1];
   }
   
-  // Generate temporary ID based on email content
-  const messageContainer = document.querySelector(GMAIL_SELECTORS.messageContainer);
-  if (messageContainer) {
-    const emailContent = messageContainer.textContent.substring(0, 100);
-    return btoa(emailContent).substring(0, 16);
+  // Method 2: Try thread ID from DOM
+  const threadElement = document.querySelector(GMAIL_SELECTORS.emailThread);
+  if (threadElement) {
+    const threadId = threadElement.getAttribute('data-thread-id');
+    console.log('TeamMail: Email ID from DOM thread:', threadId);
+    return threadId;
   }
   
+  // Method 3: Try message ID
+  const messageElement = document.querySelector(GMAIL_SELECTORS.emailMessage);
+  if (messageElement) {
+    const messageId = messageElement.getAttribute('data-legacy-thread-id');
+    console.log('TeamMail: Email ID from DOM message:', messageId);
+    return messageId;
+  }
+  
+  // Method 4: Generate ID from email content (only if we're clearly in an email)
+  const messageContainer = document.querySelector(GMAIL_SELECTORS.messageContainer);
+  if (messageContainer && messageContainer.textContent.length > 50) {
+    const emailContent = messageContainer.textContent.substring(0, 200);
+    const contentId = btoa(emailContent).substring(0, 16);
+    console.log('TeamMail: Email ID from content hash:', contentId);
+    return contentId;
+  }
+  
+  console.log('TeamMail: No email ID found, probably in inbox view');
   return null;
 }
 
@@ -263,19 +302,37 @@ function addCommentToSidebar(comment) {
   container.appendChild(commentElement);
 }
 
-// Load existing comments
+// Load existing comments for specific email
 function loadComments(emailId) {
   console.log('TeamMail: Loading comments for email:', emailId);
   
-  // TODO: Load from backend API
-  // For now, show demo comment
+  if (!emailId || emailId === 'inbox') {
+    console.log('TeamMail: No valid email ID, not loading comments');
+    return;
+  }
+  
+  // Clear existing comments first
+  const container = document.querySelector('.teammail-comments-container');
+  if (container) {
+    container.innerHTML = '<div class="teammail-no-comments">No comments yet. Be the first to add one!</div>';
+  }
+  
+  // TODO: Load from backend API based on emailId
+  // For now, show email-specific demo comment
   setTimeout(() => {
-    addCommentToSidebar({
-      id: 1,
-      text: 'Welcome to TeamMail! This is a demo comment.',
-      author: 'TeamMail',
+    // Create email-specific demo comment
+    const demoComment = {
+      id: `demo-${emailId}`,
+      text: `This is a demo comment for email: ${emailId.substring(0, 8)}...`,
+      author: 'TeamMail Demo',
       timestamp: new Date().toLocaleTimeString()
-    });
+    };
+    
+    // Only add demo comment if this is the current email
+    if (emailId === currentEmailId && isTeamMailActive) {
+      addCommentToSidebar(demoComment);
+      console.log('TeamMail: Loaded email-specific comments for:', emailId);
+    }
   }, 500);
 }
 
@@ -289,15 +346,31 @@ function showMentionOptions() {
 // Set up observer for email changes
 function setupEmailObserver() {
   const observer = new MutationObserver((mutations) => {
-    // Check if we've navigated to a different email
     const newEmailId = extractEmailId();
-    if (newEmailId !== currentEmailId && isTeamMailActive) {
-      currentEmailId = newEmailId;
-      loadComments(currentEmailId);
+    
+    // If we're not viewing a specific email, close sidebar and remove button
+    if (!newEmailId || newEmailId === 'inbox') {
+      if (isTeamMailActive) {
+        console.log('TeamMail: Not viewing specific email, closing sidebar');
+        closeCommentSidebar();
+      }
+      removeCommentButton();
+      return;
     }
     
-    // Re-add comment button if it disappeared
-    if (!document.querySelector('#teammail-comment-btn')) {
+    // If we've navigated to a different email
+    if (newEmailId !== currentEmailId) {
+      console.log('TeamMail: Email changed from', currentEmailId, 'to', newEmailId);
+      currentEmailId = newEmailId;
+      
+      // If sidebar is open, load comments for new email
+      if (isTeamMailActive) {
+        loadComments(currentEmailId);
+      }
+    }
+    
+    // Re-add comment button if it disappeared (only for specific emails)
+    if (!document.querySelector('#teammail-comment-btn') && newEmailId && newEmailId !== 'inbox') {
       setTimeout(createCommentButton, 1000);
     }
   });
