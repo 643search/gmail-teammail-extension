@@ -14,10 +14,8 @@ chrome.runtime.onInstalled.addListener(function(details) {
       keyboard_shortcuts: true
     });
     
-    // Open welcome page
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('welcome.html') // TODO: Create welcome page
-    });
+    // Don't open welcome page for MVP
+    console.log('TeamMail: Installation complete');
   }
 });
 
@@ -63,47 +61,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
-// Badge management
+// Badge management (simplified for MVP)
 function updateBadge(tabId, commentCount) {
-  if (commentCount > 0) {
-    chrome.action.setBadgeText({
-      text: commentCount.toString(),
-      tabId: tabId
-    });
-    chrome.action.setBadgeBackgroundColor({
-      color: '#4285f4',
-      tabId: tabId
-    });
-  } else {
-    chrome.action.setBadgeText({
-      text: '',
-      tabId: tabId
-    });
-  }
+  // TODO: Implement badge functionality later
+  console.log('TeamMail: Badge update requested for tab:', tabId, 'count:', commentCount);
 }
 
-// Tab change handling
+// Tab change handling (simplified for MVP)
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-  // TODO: Update badge for active tab
-  chrome.tabs.get(activeInfo.tabId, function(tab) {
-    if (tab.url && tab.url.includes('mail.google.com')) {
-      // Gmail tab active - could show comment count
-      updateBadge(activeInfo.tabId, 0);
-    }
-  });
+  console.log('TeamMail: Tab activated:', activeInfo.tabId);
+  // TODO: Add badge functionality later
 });
-
-// Alarm for periodic sync (future feature)
-// Temporarily disabled for MVP
-// chrome.alarms.onAlarm.addListener(function(alarm) {
-//   if (alarm.name === 'sync-comments') {
-//     console.log('TeamMail: Syncing comments...');
-//     // TODO: Sync comments with backend
-//   }
-// });
-
-// Set up periodic sync
-// chrome.alarms.create('sync-comments', {
-//   delayInMinutes: 5,
-//   periodInMinutes: 5
-// });
