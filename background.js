@@ -50,13 +50,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   return true; // Keep message channel open for async response
 });
 
-// Handle messages from popup
+// Handle toggle-comments from popup (separate listener)
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'toggle-comments') {
     // Forward to content script
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, request);
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, request);
+      }
     });
+    return true;
   }
 });
 
@@ -91,15 +94,16 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 });
 
 // Alarm for periodic sync (future feature)
-chrome.alarms.onAlarm.addListener(function(alarm) {
-  if (alarm.name === 'sync-comments') {
-    console.log('TeamMail: Syncing comments...');
-    // TODO: Sync comments with backend
-  }
-});
+// Temporarily disabled for MVP
+// chrome.alarms.onAlarm.addListener(function(alarm) {
+//   if (alarm.name === 'sync-comments') {
+//     console.log('TeamMail: Syncing comments...');
+//     // TODO: Sync comments with backend
+//   }
+// });
 
 // Set up periodic sync
-chrome.alarms.create('sync-comments', {
-  delayInMinutes: 5,
-  periodInMinutes: 5
-});
+// chrome.alarms.create('sync-comments', {
+//   delayInMinutes: 5,
+//   periodInMinutes: 5
+// });
