@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 16px;
+      font-family: 'Google Sans', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .version {
+      color: #5f6368;
+      font-size: 12px;
+    }
+    
+    .status {
+      padding: 12px;
+      background: #e8f5e8;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+      color: #137333;
+    }
+    
+    .status.inactive {
+      background: #fce8e6;
+      color: #d93025;
+    }
+    
+    .features {
+      margin-bottom: 16px;
+    }
+    
+    .features h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #3c4043;
+    }
+    
+    .feature {
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .feature:last-child {
+      border-bottom: none;
+    }
+    
+    .feature-icon {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    
+    .feature-text {
+      font-size: 13px;
+      color: #5f6368;
+    }
+    
+    .actions {
+      text-align: center;
+    }
+    
+    .btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      margin: 4px;
+    }
+    
+    .btn:hover {
+      background: #1557b0;
+    }
+    
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-secondary:hover {
+      background: #e8f0fe;
+    }
+    
+    .shortcut {
+      font-size: 11px;
+      color: #5f6368;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">💬 TeamMail</div>
+    <div class="version">v0.1.0 MVP</div>
+  </div>
+  
+  <div id="status" class="status">
+    <div id="status-text">Ready to collaborate!</div>
+  </div>
+  
+  <div class="features">
+    <h3>Features</h3>
+    <div class="feature">
+      <span class="feature-icon">💬</span>
+      <span class="feature-text">Comment on any email thread</span>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">@</span>
+      <span class="feature-text">@mention team members</span>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">👥</span>
+      <span class="feature-text">Team collaboration without forwarding</span>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">🔄</span>
+      <span class="feature-text">Real-time comment sync</span>
+    </div>
+  </div>
+  
+  <div class="actions">
+    <button id="open-comments" class="btn">Open Comments</button>
+    <button id="view-team" class="btn btn-secondary">View Team</button>
+  </div>
+  
+  <div class="shortcut">
+    Shortcut: Ctrl+Shift+C (or Cmd+Shift+C on Mac)
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
