@@ -7,25 +7,40 @@ let isTeamMailActive = false;
 let currentEmailId = null;
 let commentSidebar = null;
 
-// Gmail selectors (these may need updates as Gmail changes)
+// Gmail selectors (multiple fallbacks for different Gmail layouts)
 const GMAIL_SELECTORS = {
   emailThread: '[data-thread-id]',
-  emailMessage: '[data-legacy-thread-id]',
+  emailMessage: '[data-legacy-thread-id]', 
   toolbar: '[data-tooltip="Show details"]',
-  messageContainer: '.ii.gt'
+  messageContainer: '.ii.gt',
+  replyToolbar: '[data-tooltip="Reply"]',
+  bottomToolbar: '.amn',
+  topToolbar: '.ar9',
+  emailActions: '.adf'
 };
 
 // Initialize TeamMail when Gmail loads
 function initTeamMail() {
   console.log('TeamMail: Initializing...');
   
-  // Wait for Gmail to load
+  // Try to setup immediately
+  setupTeamMail();
+  
+  // Also wait for Gmail to fully load and retry
+  let attempts = 0;
+  const maxAttempts = 10;
+  
   const checkGmailLoaded = setInterval(() => {
-    if (document.querySelector(GMAIL_SELECTORS.toolbar)) {
+    attempts++;
+    console.log(`TeamMail: Setup attempt ${attempts}/${maxAttempts}`);
+    
+    setupTeamMail();
+    
+    if (attempts >= maxAttempts || document.querySelector('#teammail-comment-btn')) {
       clearInterval(checkGmailLoaded);
-      setupTeamMail();
+      console.log('TeamMail: Setup complete or max attempts reached');
     }
-  }, 1000);
+  }, 2000);
 }
 
 // Set up TeamMail features
@@ -44,26 +59,76 @@ function setupTeamMail() {
 
 // Create the main comment button
 function createCommentButton() {
-  // Find Gmail toolbar
-  const toolbar = document.querySelector(GMAIL_SELECTORS.toolbar);
-  if (!toolbar || document.querySelector('#teammail-comment-btn')) return;
+  if (document.querySelector('#teammail-comment-btn')) {
+    console.log('TeamMail: Comment button already exists');
+    return;
+  }
+  
+  console.log('TeamMail: Attempting to create comment button...');
+  
+  // Try multiple injection points
+  let injectionPoint = null;
+  
+  // Method 1: Try bottom toolbar (near Reply/Forward buttons)
+  const bottomToolbar = document.querySelector(GMAIL_SELECTORS.bottomToolbar);
+  if (bottomToolbar) {
+    console.log('TeamMail: Found bottom toolbar');
+    injectionPoint = bottomToolbar;
+  }
+  
+  // Method 2: Try top toolbar area
+  if (!injectionPoint) {
+    const topToolbar = document.querySelector(GMAIL_SELECTORS.topToolbar);
+    if (topToolbar) {
+      console.log('TeamMail: Found top toolbar');
+      injectionPoint = topToolbar;
+    }
+  }
+  
+  // Method 3: Try email actions area
+  if (!injectionPoint) {
+    const emailActions = document.querySelector(GMAIL_SELECTORS.emailActions);
+    if (emailActions) {
+      console.log('TeamMail: Found email actions');
+      injectionPoint = emailActions;
+    }
+  }
+  
+  // Method 4: Fallback - inject into body with fixed position
+  if (!injectionPoint) {
+    console.log('TeamMail: Using fallback injection to body');
+    injectionPoint = document.body;
+  }
   
   // Create comment button
   const commentButton = document.createElement('div');
   commentButton.id = 'teammail-comment-btn';
+  commentButton.style.cssText = `
+    display: inline-block;
+    margin: 8px;
+    z-index: 1000;
+    position: relative;
+  `;
   commentButton.innerHTML = `
-    <button class="teammail-btn" title="Add team comment">
-      💬 Comment
+    <button class="teammail-btn" title="Add team comment" style="
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: 'Google Sans', Roboto, sans-serif;
+    ">
+      💬 TeamMail
     </button>
   `;
   
   commentButton.addEventListener('click', toggleCommentSidebar);
   
-  // Insert button near toolbar
-  const parentContainer = toolbar.closest('.ar9');
-  if (parentContainer) {
-    parentContainer.appendChild(commentButton);
-  }
+  // Insert button
+  injectionPoint.appendChild(commentButton);
+  console.log('TeamMail: Comment button created and inserted');
 }
 
 // Toggle comment sidebar
@@ -254,9 +319,25 @@ function setupKeyboardShortcuts() {
   });
 }
 
+// Listen for messages from popup/background
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  console.log('TeamMail: Received message:', request);
+  
+  if (request.action === 'toggle-comments') {
+    toggleCommentSidebar();
+    sendResponse({success: true});
+  }
+  
+  return true;
+});
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initTeamMail);
 } else {
   initTeamMail();
 }
+
+// Also try after a delay for Gmail's dynamic loading
+setTimeout(initTeamMail, 3000);
+setTimeout(initTeamMail, 6000);
